@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
@@ -95,6 +96,14 @@ func (e *GhEditor) prompt(initialValue string, config *survey.PromptConfig) (int
 		// EXTENDED to handle the e to edit / enter to skip behavior + BlankAllowed
 		r, _, err := rr.ReadRune()
 		if err != nil {
+			// Handle Alt+backspace on macOS which generates ESC+DEL sequence
+			// that the survey library doesn't recognize
+			if strings.Contains(err.Error(), "unexpected escape sequence from terminal") && 
+			   strings.Contains(err.Error(), "['\\x1b' '\\x7f']") {
+				// Silently ignore Alt+backspace - it should delete a word but 
+				// since we're just waiting for 'e' or enter, we can ignore it
+				continue
+			}
 			return "", err
 		}
 		if r == 'e' {
